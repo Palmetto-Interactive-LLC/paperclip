@@ -25,6 +25,10 @@ import { describe, expect, it } from "vitest";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const dockerfile = readFileSync(path.join(repoRoot, "Dockerfile"), "utf8");
+const dockerWorkflow = readFileSync(
+  path.join(repoRoot, ".github", "workflows", "docker.yml"),
+  "utf8",
+);
 const serverPackageJson = JSON.parse(
   readFileSync(path.join(repoRoot, "server", "package.json"), "utf8"),
 ) as { peerDependencies?: Record<string, string> };
@@ -84,6 +88,26 @@ function runProbe(probeCopy: string) {
 }
 
 describe("cloud image Sentry install", () => {
+  it("normalizes GHCR image and cache repository names for organization forks", () => {
+    expect(dockerWorkflow.match(/^\s*id: image-repository$/gm)).toHaveLength(2);
+    expect(
+      dockerWorkflow.match(
+        /^\s*IMAGE_REPOSITORY: ghcr\.io\/\$\{\{ github\.repository \}\}$/gm,
+      ),
+    ).toHaveLength(2);
+    expect(
+      dockerWorkflow.match(
+        /^\s*run: echo "value=\$\{IMAGE_REPOSITORY,,\}" >> "\$GITHUB_OUTPUT"$/gm,
+      ),
+    ).toHaveLength(2);
+    expect(dockerWorkflow).not.toMatch(
+      /(?:images:\s*|ref=)ghcr\.io\/\$\{\{ github\.repository \}\}/,
+    );
+    expect(
+      dockerWorkflow.match(/\$\{\{ steps\.image-repository\.outputs\.value \}\}/g),
+    ).toHaveLength(6);
+  });
+
   it("declares @sentry/node as an optional peer in server/package.json", () => {
     expect(
       declaredVersion,
