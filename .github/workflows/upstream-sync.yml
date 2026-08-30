@@ -1,0 +1,37 @@
+name: Upstream sync
+
+on:
+  schedule:
+    # Run after the upstream workday has had time to settle.
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+# This workflow only proposes changes. It never writes master and never
+# force-pushes an automation branch.
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # A manual run is valid only from master. Scheduled runs always use the
+    # default branch, so the script and its policy cannot come from a feature
+    # branch selected by a caller.
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout fork master
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.0
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Detect upstream changes and open review PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/upstream-sync.mjs
