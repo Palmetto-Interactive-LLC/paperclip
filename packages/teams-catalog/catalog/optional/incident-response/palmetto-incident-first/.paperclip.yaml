@@ -1,0 +1,38 @@
+schema: paperclip/v1
+agents:
+  incident-coordinator:
+    role: devops
+    budgetMonthlyCents: 1000
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        maxConcurrentRuns: 1
+  resolver:
+    role: engineer
+    budgetMonthlyCents: 5000
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        maxConcurrentRuns: 1
+  independent-verifier:
+    role: qa
+    budgetMonthlyCents: 1500
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        maxConcurrentRuns: 1
+projects:
+  incident-canary:
+    status: planned
