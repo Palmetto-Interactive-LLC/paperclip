@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packageName": "@paperclipai/teams-catalog",
   "packageVersion": "0.1.0",
-  "generatedAt": "2026-08-30T02:17:59.692Z",
+  "generatedAt": "2026-08-30T02:24:44.486Z",
   "teams": [
     {
       "id": "paperclipai:bundled:company-defaults:core-exec-team",
@@ -490,7 +490,7 @@
         "agents": 3,
         "projects": 1,
         "tasks": 0,
-        "routines": 1,
+        "routines": 0,
         "localSkills": 1,
         "catalogSkills": 3,
         "externalSkillSources": 0
@@ -555,14 +555,14 @@
         {
           "path": "TEAM.md",
           "kind": "team",
-          "sizeBytes": 1682,
-          "sha256": "2a77c95609b8e808753634bfaa33ca46243fbfea1cbc48126359948ff6a7ff26"
+          "sizeBytes": 1780,
+          "sha256": "a92b98b6d6ccb294edfacf9ba12ac8f075b306c2c0666da57748abe184063ef3"
         },
         {
           "path": ".paperclip.yaml",
           "kind": "extension",
-          "sizeBytes": 1114,
-          "sha256": "e46005549612ff6a045c09afece566d70a42c6fc2f80047c46782668535b3225"
+          "sizeBytes": 829,
+          "sha256": "d7c5b6c035114b77668bc7ee322ce97494c6ba0fedb6f04c2ef9f2cba478581e"
         },
         {
           "path": "agents/incident-coordinator/AGENTS.md",
@@ -589,16 +589,16 @@
           "sha256": "3884dd1ab66044fd4dd1fcbf969b36e55646fe74ab00bb14178d57c568a95d3d"
         },
         {
-          "path": "projects/incident-canary/tasks/incident-canary-watch/TASK.md",
-          "kind": "task",
-          "sizeBytes": 433,
-          "sha256": "6e23f32cf4fba637543cdd0b5b94bb4cd6111bb3878a0eb9d5c28a1a418a5608"
-        },
-        {
           "path": "README.md",
           "kind": "readme",
-          "sizeBytes": 1076,
-          "sha256": "d53cae61fd1eb2501b5d37dba256734d0d3686117cc74efc3b0da473bb0d8f89"
+          "sizeBytes": 1074,
+          "sha256": "c1314fe387eb1a519864899b371ff0283b010adfac96afb3fdec60df0af60171"
+        },
+        {
+          "path": "references/incident-canary-watch.md",
+          "kind": "reference",
+          "sizeBytes": 473,
+          "sha256": "9c992925a8f7331bcbf125b3d02b95e7e165f6547945d883be3d3528ddb9a9d7"
         },
         {
           "path": "skills/incident-canary-governance/SKILL.md",
@@ -609,7 +609,7 @@
       ],
       "trustLevel": "assets",
       "compatibility": "compatible",
-      "contentHash": "sha256:c081b7669df977ad73d85f34f2a5c49280b7b3f1074676dd7806fa08e945632e"
+      "contentHash": "sha256:f8028bcdc3e242ddced49ec9fed7bb8b2b181705a2cc062d90b652614713b47f"
     }
   ]
 }

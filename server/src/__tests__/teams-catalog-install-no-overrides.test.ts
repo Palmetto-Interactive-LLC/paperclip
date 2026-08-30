@@ -5,17 +5,19 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
+  agentWakeupRequests,
   agents,
   companies,
   companyMemberships,
   createDb,
+  heartbeatRuns,
   routines,
-  routineTriggers,
 } from "@paperclipai/db";
 import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
 } from "./helpers/embedded-postgres.js";
+import { heartbeatService } from "../services/heartbeat.js";
 import { teamsCatalogService } from "../services/teams-catalog.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
@@ -71,6 +73,7 @@ describeEmbeddedPostgres("teams catalog install with no caller adapter overrides
   async function listAdapterTypesByName(companyId: string) {
     const rows = await db
       .select({
+        id: agents.id,
         name: agents.name,
         role: agents.role,
         adapterType: agents.adapterType,
@@ -156,18 +159,22 @@ describeEmbeddedPostgres("teams catalog install with no caller adapter overrides
       expect(row.permissions).not.toHaveProperty("toolAllowlist");
     }
 
-    const [routine] = await db.select().from(routines).where(eq(routines.companyId, companyId));
-    expect(routine).toMatchObject({
-      title: "Incident Canary Watch",
-      status: "paused",
-      concurrencyPolicy: "coalesce_if_active",
-      catchUpPolicy: "skip_missed",
+    expect(await db.select().from(routines).where(eq(routines.companyId, companyId))).toEqual([]);
+
+    const importedAgent = Array.from(byName.values())[0]!;
+    const wakeup = await heartbeatService(db).wakeup(importedAgent.id, {
+      source: "on_demand",
+      triggerDetail: "manual",
+      requestedByActorType: "user",
+      requestedByActorId: "test-board-user",
     });
-    const [trigger] = await db
+    expect(wakeup).toBeNull();
+    const [request] = await db
       .select()
-      .from(routineTriggers)
-      .where(eq(routineTriggers.routineId, routine!.id));
-    expect(trigger).toMatchObject({ kind: "schedule", enabled: false });
+      .from(agentWakeupRequests)
+      .where(eq(agentWakeupRequests.agentId, importedAgent.id));
+    expect(request).toMatchObject({ status: "skipped", reason: "heartbeat.wakeOnDemand.disabled" });
+    expect(await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.agentId, importedAgent.id))).toEqual([]);
   });
 
   it("honors an explicit caller adapter override for a single slug while defaulting the rest to claude_local", async () => {

@@ -10,6 +10,7 @@ includes:
   - agents/resolver/AGENTS.md
   - agents/independent-verifier/AGENTS.md
   - projects/incident-canary/PROJECT.md
+  - references/incident-canary-watch.md
   - skills/incident-canary-governance/SKILL.md
 defaultInstall: false
 recommendedForCompanyTypes:
@@ -33,10 +34,12 @@ This package installs three inert role blueprints: Incident Coordinator, Resolve
 Independent Verifier. The coordinator owns intake and assignment, the resolver owns one
 bounded fix, and the verifier independently proves or rejects the result.
 
-The sidecar disables timer and on-demand wakeups for every role, caps each role at one
-concurrent run, and imports the watch routine paused with its trigger disabled. The board
-must configure credentials, grants, and activation after reviewing the import plan.
+The sidecar disables timer and on-demand wakeups for every role and caps each role at one
+concurrent run. The watch is documentation only because Paperclip permits manual execution
+of paused routines. The board must configure credentials, grants, and activation after
+reviewing the import plan.
 
 Use the `incident-canary` project as the work record. The role instructions and local skill
-are operational guidance, not runtime authorization controls. This package does not define
-feature-delivery, machine-evolution, or executive-digest automation.
+are operational guidance, not runtime authorization controls. This package installs no
+routine and does not define feature-delivery, machine-evolution, or executive-digest
+automation.

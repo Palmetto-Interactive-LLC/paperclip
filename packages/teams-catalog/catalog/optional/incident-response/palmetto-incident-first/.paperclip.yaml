@@ -36,14 +36,3 @@ agents:
 projects:
   incident-canary:
     status: planned
-routines:
-  incident-canary-watch:
-    status: paused
-    concurrencyPolicy: coalesce_if_active
-    catchUpPolicy: skip_missed
-    triggers:
-      - kind: schedule
-        label: Incident canary watch
-        enabled: false
-        cronExpression: "*/15 * * * *"
-        timezone: UTC

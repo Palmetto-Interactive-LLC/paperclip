@@ -119,7 +119,7 @@ describe("shipped teams catalog", () => {
     );
     expect(team).toBeDefined();
     expect(team?.agentSlugs).toEqual(["incident-coordinator", "independent-verifier", "resolver"]);
-    expect(team?.counts).toMatchObject({ agents: 3, projects: 1, routines: 1, localSkills: 1 });
+    expect(team?.counts).toMatchObject({ agents: 3, projects: 1, tasks: 0, routines: 0, localSkills: 1 });
 
     const extensionPath = path.join(PACKAGE_DIR, team!.path, ".paperclip.yaml");
     const extension = fs.readFileSync(extensionPath, "utf8");
@@ -134,11 +134,13 @@ describe("shipped teams catalog", () => {
       expect(permissions).toEqual({ canCreateAgents: false, canCreateSkills: false });
     }
 
-    expect(extension).toContain("status: paused");
-    expect(extension).toContain("label: Incident canary watch\n        enabled: false");
+    expect(extension).not.toContain("routines:");
     expect(extension).not.toContain("toolAllowlist");
     expect(extension).not.toContain("approvalGates");
     expect(extension).not.toContain("maxAuthority");
+    expect(team?.files).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: "references/incident-canary-watch.md", kind: "reference" }),
+    ]));
   });
 });
 
