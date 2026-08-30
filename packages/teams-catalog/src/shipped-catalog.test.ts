@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { catalogManifest, catalogTeams, resolveCatalogTeamRef } from "./index.js";
-import { asBoolean, asString, parseFrontmatterMarkdown } from "./frontmatter.js";
+import { asBoolean, asString, isPlainRecord, parseFrontmatterMarkdown } from "./frontmatter.js";
 import type { CatalogTeam } from "./types.js";
 
 const EXPECTED_BUNDLED_KEYS = [
@@ -113,7 +113,7 @@ describe("shipped teams catalog", () => {
     expect(issues).toEqual([]);
   });
 
-  it("ships the Palmetto canary as three active roles with paused future tracks", () => {
+  it("ships the Palmetto canary as three inert roles with disabled automation", () => {
     const team = catalogTeams.find(
       (entry) => entry.key === "paperclipai/optional/incident-response/palmetto-incident-first",
     );
@@ -123,14 +123,22 @@ describe("shipped teams catalog", () => {
 
     const extensionPath = path.join(PACKAGE_DIR, team!.path, ".paperclip.yaml");
     const extension = fs.readFileSync(extensionPath, "utf8");
-    expect(extension).toContain("maxConcurrentResolvers: 2");
-    expect(extension).toContain("maxIncidentCostUsd: 5");
-    expect(extension).toContain("executiveDigest: disabled");
-    expect(extension).toContain("useful-feature-delivery:");
-    expect(extension).toContain("machine-evolution:");
+    const sidecar = parseFrontmatterMarkdown(`---\n${extension}\n---\n`).frontmatter;
+    const sidecarAgents = isPlainRecord(sidecar.agents) ? sidecar.agents : {};
+    for (const slug of team!.agentSlugs) {
+      const agent = isPlainRecord(sidecarAgents[slug]) ? sidecarAgents[slug] : {};
+      const runtime = isPlainRecord(agent.runtime) ? agent.runtime : {};
+      const heartbeat = isPlainRecord(runtime.heartbeat) ? runtime.heartbeat : {};
+      const permissions = isPlainRecord(agent.permissions) ? agent.permissions : {};
+      expect(heartbeat).toMatchObject({ enabled: false, wakeOnDemand: false, maxConcurrentRuns: 1 });
+      expect(permissions).toEqual({ canCreateAgents: false, canCreateSkills: false });
+    }
+
     expect(extension).toContain("status: paused");
-    expect(extension).toContain("selfModification:");
-    expect(extension).toContain("skills: forbidden");
+    expect(extension).toContain("label: Incident canary watch\n        enabled: false");
+    expect(extension).not.toContain("toolAllowlist");
+    expect(extension).not.toContain("approvalGates");
+    expect(extension).not.toContain("maxAuthority");
   });
 });
 

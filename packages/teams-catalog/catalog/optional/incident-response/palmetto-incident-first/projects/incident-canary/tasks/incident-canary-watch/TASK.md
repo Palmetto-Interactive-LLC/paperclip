@@ -6,6 +6,7 @@ project: incident-canary
 recurring: true
 ---
 
-Review newly assigned incident tasks, enforce goal linkage and the two-resolver cap, surface
-stalls or missing approvals, and leave one durable status comment. Do not produce an
-executive digest and do not dispatch feature-delivery or machine-evolution work.
+When the board explicitly enables this routine, review newly assigned incident tasks, flag
+missing identifiers, stale evidence, missing approvals, or concurrent work, and leave one
+durable status comment. Do not produce an executive digest or dispatch feature-delivery or
+machine-evolution work.

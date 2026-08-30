@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packageName": "@paperclipai/teams-catalog",
   "packageVersion": "0.1.0",
-  "generatedAt": "2026-08-30T01:40:25.668Z",
+  "generatedAt": "2026-08-30T02:17:59.692Z",
   "teams": [
     {
       "id": "paperclipai:bundled:company-defaults:core-exec-team",
@@ -470,7 +470,7 @@
       "category": "incident-response",
       "slug": "palmetto-incident-first",
       "name": "Palmetto Incident First",
-      "description": "Incident-first canary team with a coordinator, resolver, and independent verifier under explicit authority and budget gates.",
+      "description": "Paused incident-canary role blueprints for coordinated resolution and independent verification under board-controlled activation.",
       "path": "catalog/optional/incident-response/palmetto-incident-first",
       "entrypoint": "TEAM.md",
       "schema": "agentcompanies/v1",
@@ -555,61 +555,61 @@
         {
           "path": "TEAM.md",
           "kind": "team",
-          "sizeBytes": 1696,
-          "sha256": "9ac3ae05f6eaa724d89ead5691264a260491083143f6b94185c41a7c6565cbd3"
+          "sizeBytes": 1682,
+          "sha256": "2a77c95609b8e808753634bfaa33ca46243fbfea1cbc48126359948ff6a7ff26"
         },
         {
           "path": ".paperclip.yaml",
           "kind": "extension",
-          "sizeBytes": 2512,
-          "sha256": "cfbe487f80598a22723b7b51a26d811e4ee0132f7f7e91cb7f4e1df1f465f8fd"
+          "sizeBytes": 1114,
+          "sha256": "e46005549612ff6a045c09afece566d70a42c6fc2f80047c46782668535b3225"
         },
         {
           "path": "agents/incident-coordinator/AGENTS.md",
           "kind": "agent",
-          "sizeBytes": 930,
-          "sha256": "6e27515a54693b5c7a7e79b8b2ed31a450b05d4dd86ecfa2ec4ef6c90dbbbf7b"
+          "sizeBytes": 960,
+          "sha256": "ad19742cc58c29c6198fa3cbb7df86cbad5e598b863abeab576b7d2b98c455e5"
         },
         {
           "path": "agents/independent-verifier/AGENTS.md",
           "kind": "agent",
-          "sizeBytes": 816,
-          "sha256": "e6a536e78786e3e85c476c813fb528a0566173f2d667309ae23b2186d2bf811c"
+          "sizeBytes": 947,
+          "sha256": "83a9485d0ff514ccb97dfab2ca0b3655411ca8297f9fd2a0986135c1962610f6"
         },
         {
           "path": "agents/resolver/AGENTS.md",
           "kind": "agent",
-          "sizeBytes": 789,
-          "sha256": "2fa5a59a58bc0723f2a47a4699a0a54c9daf8a9f7deea220852d1dc2567779f6"
+          "sizeBytes": 842,
+          "sha256": "d4b4453e38e8ae2ff6cbb4d63654c42e76eb01991427eb7c76862d2dea964ac9"
         },
         {
           "path": "projects/incident-canary/PROJECT.md",
           "kind": "project",
-          "sizeBytes": 439,
-          "sha256": "4cbc0b9623c3a3cbb1343d2473addf02c94adf91fc08bd82d9c9fb326bd66f46"
+          "sizeBytes": 441,
+          "sha256": "3884dd1ab66044fd4dd1fcbf969b36e55646fe74ab00bb14178d57c568a95d3d"
         },
         {
           "path": "projects/incident-canary/tasks/incident-canary-watch/TASK.md",
           "kind": "task",
-          "sizeBytes": 396,
-          "sha256": "608bdb91007c32ca58fb1297edebcaf70b2dccc39c7fd6ff27a129c0d2ced79e"
+          "sizeBytes": 433,
+          "sha256": "6e23f32cf4fba637543cdd0b5b94bb4cd6111bb3878a0eb9d5c28a1a418a5608"
         },
         {
           "path": "README.md",
           "kind": "readme",
-          "sizeBytes": 971,
-          "sha256": "38a8f1afa3f8358d1475f6c6470aa0865d28479b4cc38682856e432ba62520cf"
+          "sizeBytes": 1076,
+          "sha256": "d53cae61fd1eb2501b5d37dba256734d0d3686117cc74efc3b0da473bb0d8f89"
         },
         {
           "path": "skills/incident-canary-governance/SKILL.md",
           "kind": "skill",
-          "sizeBytes": 1972,
-          "sha256": "53a1942e8cc555b4c96834a87fbd59e186713ba3db96962e2112edcfe2ae6ab0"
+          "sizeBytes": 2090,
+          "sha256": "8cd7e8e72305fa452a50ba710586dd8e7015a69088d169a7b1bf92e2b7cf0679"
         }
       ],
       "trustLevel": "assets",
       "compatibility": "compatible",
-      "contentHash": "sha256:9ca2c039eb08ca3325066208bc05064ff6a7e022f05bd927b1b75e08cc57e59c"
+      "contentHash": "sha256:c081b7669df977ad73d85f34f2a5c49280b7b3f1074676dd7806fa08e945632e"
     }
   ]
 }

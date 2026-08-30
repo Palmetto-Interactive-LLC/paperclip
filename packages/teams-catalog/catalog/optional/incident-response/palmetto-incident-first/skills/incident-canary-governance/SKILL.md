@@ -1,49 +1,47 @@
 ---
 name: incident-canary-governance
-description: Apply Palmetto's incident-first authority, budget, approval, and evidence gates to a goal-linked canary task.
+description: Apply Palmetto's incident-first review checklist to a board-activated canary task.
 slug: incident-canary-governance
 tags:
   - incidents
   - governance
   - least-privilege
-metadata:
-  paperclip:
-    immutable: true
-    selfModification: forbidden
 ---
 
 # Incident Canary Governance
 
-Use this skill for every canary incident task. It is a reviewed procedure, not a runtime
-plugin and not permission to change itself.
+Use this skill for every board-activated canary incident task. It is a review checklist, not
+a runtime plugin, access-control boundary, approval mechanism, or permission to change
+itself.
 
-## Authority
+## Operating scope
 
-- R0: observe, preserve evidence, classify, and report.
-- R1: write a goal-linked plan and request an approval.
-- R2: execute the specifically approved fix in an isolated workspace.
-- R3: merge or deploy only after independent verification and the required human gate.
-- R4: change budgets, routing, org structure, permissions, or skills; board/human only.
+- The coordinator observes, preserves evidence, classifies, and requests approval.
+- The resolver executes only the specifically approved fix in an isolated workspace.
+- The verifier independently reproduces recovery and returns a recommendation.
+- A human performs or explicitly approves merge, deployment, incident closure, and changes
+  to budgets, routing, organization structure, permissions, credentials, or skills.
 
-No role may exceed the authority declared in its `AGENTS.md`. A missing or stale approval is
-a hard stop.
+Paperclip does not enforce these role sentences as permissions. Before activation, the board
+must configure actual grants, scoped credentials, and adapter isolation that match the task.
 
-## Gates and budgets
+## Review checklist
 
-1. Link the task to the incident-canary goal/project and record evidence.
-2. The coordinator classifies and requests R2 approval; no resolver acts before approval.
-3. Permit at most two concurrent resolvers and at most ten verified merges per UTC day.
-4. Stop at $5 per incident or $75 per UTC day; surface the gate instead of retrying.
-5. The verifier is independent of the resolver and must post a pass/fail evidence report.
-6. Only after a pass may the coordinator request the R3 human merge/deploy gate.
+1. Link the task to the incident-canary project and record provider identifiers.
+2. Fetch current evidence inside the trusted process; reject caller-supplied provider status.
+3. Require a fresh human approval before the resolver acts.
+4. Keep one resolver run active; stop instead of expanding scope or retrying without bounds.
+5. Have a different verifier post a pass/fail report using live recovery evidence.
+6. After a pass, ask a human to approve or perform merge, deployment, and provider closure.
+7. Read back repository, deployment, Sentry, and PagerDuty state before marking work done.
 
 ## Safe reflection
 
-Reflection Coach may produce a trajectory-backed proposal and displayed diff for later
-acceptance. It may not apply a same-run change, hot-swap instructions, or modify a skill,
-tool description, budget, or policy without a separate accepted interaction.
+Reflection may produce a proposal and displayed diff for later board review. It may not
+apply a same-run change or be treated as authorization to change instructions, skills,
+tools, budgets, credentials, or policy.
 
 ## Reporting
 
-Use the incident task as the system of record. Report owner, current authority, budget state,
-approval state, evidence, blocker, and next action. Do not create an executive digest.
+Use the incident task as the work record. Report owner, approval state, fresh evidence,
+blocker, and next action. Do not create an executive digest.

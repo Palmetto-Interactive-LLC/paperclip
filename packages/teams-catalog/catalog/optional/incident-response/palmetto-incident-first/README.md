@@ -1,17 +1,16 @@
 # Palmetto Incident First
 
-Optional Paperclip team package for an incident-first canary. Import the team through the
-Paperclip teams catalog, review the generated import plan, and keep automations paused until
-the board accepts the displayed plan.
+Optional, paused-by-construction reference package for an incident canary. A normal catalog
+install creates three role blueprints with timer heartbeats disabled, on-demand wakeups
+disabled, and one-run concurrency. Its watch routine is paused and its schedule trigger is
+disabled. Importing this package must not start an agent or automation.
 
-The package is intentionally small: three active agents, one goal-linked project, one
-coalescing watch routine, and one local governance skill. `Useful Feature Delivery` and
-`Machine Evolution` are paused definitions in `.paperclip.yaml`, not active agents.
+The package contains only the runtime controls Paperclip currently enforces here: monthly
+budgets, agent- and skill-creation permissions, heartbeat policy, project status, routine
+status, and trigger state. The authority and approval language in the role files is an
+operating checklist, not an access-control boundary or a substitute for scoped credentials.
 
-The local skill follows the official Paperclip Skills Store / Reflection Coach safety shape:
-skills are reusable, inspectable packages; reflection produces a reviewable proposal and
-cannot hot-swap instructions. No community runtime plugin is included or required.
-
-The sidecar carries Paperclip-only budgets, authority levels, approval gates, reporting
-policy, tool allowlists, and routine trigger fidelity. It contains no credentials or
-machine-specific paths.
+Before activation, the board must review the generated import plan, attach the team beneath
+the intended manager, configure a least-privilege adapter and secrets, set explicit resource
+permissions, and enable only the role or trigger needed for a bounded canary. The package
+contains no credentials, executable hooks, or machine-specific paths.

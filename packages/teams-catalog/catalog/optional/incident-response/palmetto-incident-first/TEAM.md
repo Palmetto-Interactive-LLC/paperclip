@@ -1,6 +1,6 @@
 ---
 name: Palmetto Incident First
-description: Incident-first canary team with a coordinator, resolver, and independent verifier under explicit authority and budget gates.
+description: Paused incident-canary role blueprints for coordinated resolution and independent verification under board-controlled activation.
 schema: agentcompanies/v1
 slug: palmetto-incident-first
 category: incident-response
@@ -29,15 +29,14 @@ requiredSkills:
 
 # Palmetto Incident First
 
-This package is the smallest useful incident canary for Palmetto. It starts with exactly
-three active roles: Incident Coordinator, Resolver, and Independent Verifier. The
-coordinator owns intake and assignment, the resolver owns a bounded fix, and the verifier
-independently proves or rejects the result.
+This package installs three inert role blueprints: Incident Coordinator, Resolver, and
+Independent Verifier. The coordinator owns intake and assignment, the resolver owns one
+bounded fix, and the verifier independently proves or rejects the result.
 
-Useful Feature Delivery and Machine Evolution are named as paused future tracks in the
-Paperclip sidecar. They are not agents in this canary and cannot receive work until a board
-decision enables them.
+The sidecar disables timer and on-demand wakeups for every role, caps each role at one
+concurrent run, and imports the watch routine paused with its trigger disabled. The board
+must configure credentials, grants, and activation after reviewing the import plan.
 
-All work must link to the `incident-canary` project and the company's incident-first goal.
-There is no executive-digest routine. Reflection Coach is an official review pattern only:
-it may propose a reviewed change, but no agent may hot-swap its own instructions or skills.
+Use the `incident-canary` project as the work record. The role instructions and local skill
+are operational guidance, not runtime authorization controls. This package does not define
+feature-delivery, machine-evolution, or executive-digest automation.
