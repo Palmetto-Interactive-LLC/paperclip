@@ -163,15 +163,12 @@ mismatch (see "Server request data" below).
 pnpm add @sentry/node@10.71.0
 ```
 
-**The hosted image variant ships this package pre-installed.** A managed
-tenant runs the image built from the Dockerfile's `cloud` target, and that
-target installs the declared version of `@sentry/node` at build time. A
-managed tenant needs only `SENTRY_DSN` set; no install step is needed.
-
-A self-hosted operator runs the image built from the `production` target.
-That image holds no Sentry package, the same as before this feature
-existed. A self-hosted operator who wants server error monitoring still
-completes the install step above.
+**The application images ship this package pre-installed.** Both the
+Dockerfile's `production` target (the self-hosted image) and its `cloud`
+target include the declared version of `@sentry/node` at build time. An
+operator running either image needs only `SENTRY_DSN` set; no install step is
+needed. Source-checkout and non-Docker deployments still install the package
+as described above.
 
 The browser package, `@sentry/browser`, needs no install step. It is
 already a development dependency of the `ui` package, pinned to the same
