@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packageName": "@paperclipai/teams-catalog",
   "packageVersion": "0.1.0",
-  "generatedAt": "2026-06-04T18:03:41.262Z",
+  "generatedAt": "2026-08-30T01:40:25.668Z",
   "teams": [
     {
       "id": "paperclipai:bundled:company-defaults:core-exec-team",
@@ -462,6 +462,154 @@
       "trustLevel": "markdown_only",
       "compatibility": "compatible",
       "contentHash": "sha256:06822cec5f2b6910cb37ba0ebd5e04ed5c7e34f77225564ddddc2470779cdaa6"
+    },
+    {
+      "id": "paperclipai:optional:incident-response:palmetto-incident-first",
+      "key": "paperclipai/optional/incident-response/palmetto-incident-first",
+      "kind": "optional",
+      "category": "incident-response",
+      "slug": "palmetto-incident-first",
+      "name": "Palmetto Incident First",
+      "description": "Incident-first canary team with a coordinator, resolver, and independent verifier under explicit authority and budget gates.",
+      "path": "catalog/optional/incident-response/palmetto-incident-first",
+      "entrypoint": "TEAM.md",
+      "schema": "agentcompanies/v1",
+      "defaultInstall": false,
+      "recommendedForCompanyTypes": [
+        "software",
+        "platform",
+        "operations"
+      ],
+      "tags": [
+        "incidents",
+        "canary",
+        "governance",
+        "least-privilege"
+      ],
+      "counts": {
+        "agents": 3,
+        "projects": 1,
+        "tasks": 0,
+        "routines": 1,
+        "localSkills": 1,
+        "catalogSkills": 3,
+        "externalSkillSources": 0
+      },
+      "rootAgentSlugs": [
+        "incident-coordinator"
+      ],
+      "agentSlugs": [
+        "incident-coordinator",
+        "independent-verifier",
+        "resolver"
+      ],
+      "projectSlugs": [
+        "incident-canary"
+      ],
+      "requiredSkills": [
+        {
+          "type": "catalog",
+          "ref": "github-pr-workflow",
+          "agentSlugs": [
+            "resolver"
+          ],
+          "resolved": true,
+          "catalogSkillId": "paperclipai:bundled:software-development:github-pr-workflow",
+          "catalogSkillKey": "paperclipai/bundled/software-development/github-pr-workflow"
+        },
+        {
+          "type": "catalog",
+          "ref": "issue-triage",
+          "agentSlugs": [
+            "incident-coordinator"
+          ],
+          "resolved": true,
+          "catalogSkillId": "paperclipai:bundled:paperclip-operations:issue-triage",
+          "catalogSkillKey": "paperclipai/bundled/paperclip-operations/issue-triage"
+        },
+        {
+          "type": "catalog",
+          "ref": "qa-acceptance",
+          "agentSlugs": [
+            "independent-verifier"
+          ],
+          "resolved": true,
+          "catalogSkillId": "paperclipai:bundled:quality:qa-acceptance",
+          "catalogSkillKey": "paperclipai/bundled/quality/qa-acceptance"
+        },
+        {
+          "type": "local",
+          "ref": "incident-canary-governance",
+          "agentSlugs": [
+            "incident-coordinator",
+            "independent-verifier",
+            "resolver"
+          ],
+          "resolved": true,
+          "localPath": "skills/incident-canary-governance/SKILL.md"
+        }
+      ],
+      "envInputs": [],
+      "sourceRefs": [],
+      "files": [
+        {
+          "path": "TEAM.md",
+          "kind": "team",
+          "sizeBytes": 1696,
+          "sha256": "9ac3ae05f6eaa724d89ead5691264a260491083143f6b94185c41a7c6565cbd3"
+        },
+        {
+          "path": ".paperclip.yaml",
+          "kind": "extension",
+          "sizeBytes": 2512,
+          "sha256": "cfbe487f80598a22723b7b51a26d811e4ee0132f7f7e91cb7f4e1df1f465f8fd"
+        },
+        {
+          "path": "agents/incident-coordinator/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 930,
+          "sha256": "6e27515a54693b5c7a7e79b8b2ed31a450b05d4dd86ecfa2ec4ef6c90dbbbf7b"
+        },
+        {
+          "path": "agents/independent-verifier/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 816,
+          "sha256": "e6a536e78786e3e85c476c813fb528a0566173f2d667309ae23b2186d2bf811c"
+        },
+        {
+          "path": "agents/resolver/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 789,
+          "sha256": "2fa5a59a58bc0723f2a47a4699a0a54c9daf8a9f7deea220852d1dc2567779f6"
+        },
+        {
+          "path": "projects/incident-canary/PROJECT.md",
+          "kind": "project",
+          "sizeBytes": 439,
+          "sha256": "4cbc0b9623c3a3cbb1343d2473addf02c94adf91fc08bd82d9c9fb326bd66f46"
+        },
+        {
+          "path": "projects/incident-canary/tasks/incident-canary-watch/TASK.md",
+          "kind": "task",
+          "sizeBytes": 396,
+          "sha256": "608bdb91007c32ca58fb1297edebcaf70b2dccc39c7fd6ff27a129c0d2ced79e"
+        },
+        {
+          "path": "README.md",
+          "kind": "readme",
+          "sizeBytes": 971,
+          "sha256": "38a8f1afa3f8358d1475f6c6470aa0865d28479b4cc38682856e432ba62520cf"
+        },
+        {
+          "path": "skills/incident-canary-governance/SKILL.md",
+          "kind": "skill",
+          "sizeBytes": 1972,
+          "sha256": "53a1942e8cc555b4c96834a87fbd59e186713ba3db96962e2112edcfe2ae6ab0"
+        }
+      ],
+      "trustLevel": "assets",
+      "compatibility": "compatible",
+      "contentHash": "sha256:9ca2c039eb08ca3325066208bc05064ff6a7e022f05bd927b1b75e08cc57e59c"
     }
   ]
 }

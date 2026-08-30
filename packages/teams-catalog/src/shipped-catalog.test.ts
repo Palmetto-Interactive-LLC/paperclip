@@ -14,6 +14,7 @@ const EXPECTED_BUNDLED_KEYS = [
 
 const EXPECTED_OPTIONAL_KEYS = [
   "paperclipai/optional/content/content-machine",
+  "paperclipai/optional/incident-response/palmetto-incident-first",
 ];
 
 const PACKAGE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -110,6 +111,26 @@ describe("shipped teams catalog", () => {
     }
 
     expect(issues).toEqual([]);
+  });
+
+  it("ships the Palmetto canary as three active roles with paused future tracks", () => {
+    const team = catalogTeams.find(
+      (entry) => entry.key === "paperclipai/optional/incident-response/palmetto-incident-first",
+    );
+    expect(team).toBeDefined();
+    expect(team?.agentSlugs).toEqual(["incident-coordinator", "independent-verifier", "resolver"]);
+    expect(team?.counts).toMatchObject({ agents: 3, projects: 1, routines: 1, localSkills: 1 });
+
+    const extensionPath = path.join(PACKAGE_DIR, team!.path, ".paperclip.yaml");
+    const extension = fs.readFileSync(extensionPath, "utf8");
+    expect(extension).toContain("maxConcurrentResolvers: 2");
+    expect(extension).toContain("maxIncidentCostUsd: 5");
+    expect(extension).toContain("executiveDigest: disabled");
+    expect(extension).toContain("useful-feature-delivery:");
+    expect(extension).toContain("machine-evolution:");
+    expect(extension).toContain("status: paused");
+    expect(extension).toContain("selfModification:");
+    expect(extension).toContain("skills: forbidden");
   });
 });
 

@@ -1,0 +1,95 @@
+schema: paperclip/v1
+company:
+  goal: Restore customer-impacting incidents safely with the smallest verifiable change.
+  governance:
+    authorityLevels:
+      R0: observe-classify-report
+      R1: plan-and-request-approval
+      R2: execute-approved-fix
+      R3: merge-or-deploy-after-verification
+      R4: board-only-policy-org-budget-or-skill-change
+    approvalGates:
+      - r2_execution_requires_human_approval
+      - r3_merge_or_deploy_requires_independent_verification_and_human_approval
+      - r4_requires_board_approval
+    goalLinkage:
+      required: true
+      project: incident-canary
+    limits:
+      maxIncidentCostUsd: 5
+      maxDailyCostUsd: 75
+      maxConcurrentResolvers: 2
+      maxVerifiedMergesPerUtcDay: 10
+    reporting:
+      systemOfRecord: incident-task
+      executiveDigest: disabled
+    selfModification:
+      skills: forbidden
+      instructions: forbidden
+      policy: forbidden
+  pausedTracks:
+    useful-feature-delivery:
+      name: Useful Feature Delivery
+      status: paused
+      requires: board-enable
+    machine-evolution:
+      name: Machine Evolution
+      status: paused
+      requires: board-enable
+agents:
+  incident-coordinator:
+    role: incident-coordinator
+    budgetMonthlyCents: 1000
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+      toolAllowlist:
+        - issue.read
+        - issue.create
+        - issue.update
+        - issue.comment
+        - issue.assign
+        - approval.request
+        - agent.status.read
+    metadata:
+      maxAuthority: R1
+  resolver:
+    role: incident-resolver
+    budgetMonthlyCents: 5000
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+      toolAllowlist:
+        - issue.read
+        - issue.comment
+        - workspace.read
+        - workspace.write
+        - test.run
+        - pull_request.open
+    metadata:
+      maxAuthority: R2
+      maxConcurrent: 2
+  independent-verifier:
+    role: incident-verifier
+    budgetMonthlyCents: 1500
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+      toolAllowlist:
+        - issue.read
+        - issue.comment
+        - workspace.read
+        - test.run
+        - evidence.capture
+    metadata:
+      maxAuthority: R1
+routines:
+  incident-canary-watch:
+    concurrencyPolicy: coalesce_if_active
+    catchUpPolicy: skip_missed
+    triggers:
+      - kind: schedule
+        label: Incident canary watch
+        enabled: true
+        cronExpression: "*/15 * * * *"
+        timezone: UTC
