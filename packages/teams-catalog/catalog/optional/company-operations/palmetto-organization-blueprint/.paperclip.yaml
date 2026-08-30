@@ -1,0 +1,132 @@
+schema: paperclip/v1
+agents:
+  alfred:
+    role: ceo
+    budgetMonthlyCents: 4000
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        wakeOnAssignment: false
+        wakeOnAutomation: false
+        maxConcurrentRuns: 1
+  incident-command-lead:
+    role: incident-coordinator
+    budgetMonthlyCents: 1500
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        wakeOnAssignment: false
+        wakeOnAutomation: false
+        maxConcurrentRuns: 1
+  platform-operations-lead:
+    role: devops
+    budgetMonthlyCents: 2000
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        wakeOnAssignment: false
+        wakeOnAutomation: false
+        maxConcurrentRuns: 1
+  product-engineering-lead:
+    role: engineering-manager
+    budgetMonthlyCents: 4000
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        wakeOnAssignment: false
+        wakeOnAutomation: false
+        maxConcurrentRuns: 1
+  web-design-studio-lead:
+    role: designer
+    budgetMonthlyCents: 2000
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        wakeOnAssignment: false
+        wakeOnAutomation: false
+        maxConcurrentRuns: 1
+  research-intelligence-lead:
+    role: researcher
+    budgetMonthlyCents: 1500
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        wakeOnAssignment: false
+        wakeOnAutomation: false
+        maxConcurrentRuns: 1
+  business-operations-lead:
+    role: operations
+    budgetMonthlyCents: 1500
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        wakeOnAssignment: false
+        wakeOnAutomation: false
+        maxConcurrentRuns: 1
+  machine-evolution-lead:
+    role: ai-architect
+    budgetMonthlyCents: 1500
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        wakeOnAssignment: false
+        wakeOnAutomation: false
+        maxConcurrentRuns: 1
+  janitor:
+    role: devops
+    budgetMonthlyCents: 500
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        wakeOnAssignment: false
+        wakeOnAutomation: false
+        maxConcurrentRuns: 1
+  watchdog:
+    role: devops
+    budgetMonthlyCents: 500
+    permissions:
+      canCreateAgents: false
+      canCreateSkills: false
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: false
+        wakeOnAssignment: false
+        wakeOnAutomation: false
+        maxConcurrentRuns: 1

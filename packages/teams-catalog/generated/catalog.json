@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packageName": "@paperclipai/teams-catalog",
   "packageVersion": "0.1.0",
-  "generatedAt": "2026-08-30T02:24:44.486Z",
+  "generatedAt": "2026-08-30T02:59:26.267Z",
   "teams": [
     {
       "id": "paperclipai:bundled:company-defaults:core-exec-team",
@@ -374,6 +374,166 @@
       "trustLevel": "assets",
       "compatibility": "compatible",
       "contentHash": "sha256:74ddeaeb11805835a4a67fc4530b048ab7f8aa1dc7d2b80acea139a933d158d3"
+    },
+    {
+      "id": "paperclipai:optional:company-operations:palmetto-organization-blueprint",
+      "key": "paperclipai/optional/company-operations/palmetto-organization-blueprint",
+      "kind": "optional",
+      "category": "company-operations",
+      "slug": "palmetto-organization-blueprint",
+      "name": "Palmetto Organization Blueprint v1",
+      "description": "Inert, versioned Palmetto operating-model roles for incremental staffing beneath Alfred with explicit activation gates.",
+      "path": "catalog/optional/company-operations/palmetto-organization-blueprint",
+      "entrypoint": "TEAM.md",
+      "schema": "agentcompanies/v1",
+      "defaultInstall": false,
+      "recommendedForCompanyTypes": [
+        "software",
+        "platform",
+        "agency"
+      ],
+      "tags": [
+        "organization",
+        "operating-model",
+        "incremental-staffing",
+        "governance",
+        "palmetto"
+      ],
+      "counts": {
+        "agents": 10,
+        "projects": 0,
+        "tasks": 0,
+        "routines": 0,
+        "localSkills": 0,
+        "catalogSkills": 0,
+        "externalSkillSources": 0
+      },
+      "rootAgentSlugs": [
+        "alfred"
+      ],
+      "agentSlugs": [
+        "alfred",
+        "business-operations-lead",
+        "incident-command-lead",
+        "janitor",
+        "machine-evolution-lead",
+        "platform-operations-lead",
+        "product-engineering-lead",
+        "research-intelligence-lead",
+        "watchdog",
+        "web-design-studio-lead"
+      ],
+      "projectSlugs": [],
+      "requiredSkills": [],
+      "envInputs": [],
+      "sourceRefs": [],
+      "files": [
+        {
+          "path": "TEAM.md",
+          "kind": "team",
+          "sizeBytes": 2399,
+          "sha256": "69705ab474910e8745df173f618c88eba6248aa26b488d7e0749ca1a2ed84eb5"
+        },
+        {
+          "path": ".paperclip.yaml",
+          "kind": "extension",
+          "sizeBytes": 3241,
+          "sha256": "79f4fc683673d8ce045f8fb4f5a62c58912d204ff8834a0798d5eabafdb6cfc1"
+        },
+        {
+          "path": "agents/alfred/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 1005,
+          "sha256": "5f5d27364553d5387cc52fae20cebbfb56ce59217119cc872ba84edb48e580db"
+        },
+        {
+          "path": "agents/business-operations-lead/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 841,
+          "sha256": "7ce7cb8c260d89d0e1a68a55c1a6518a9bb12cc787aefecd4e61f6e5d894e0d1"
+        },
+        {
+          "path": "agents/incident-command-lead/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 938,
+          "sha256": "bb6e748aac94fd94df4882ee00272e815f7f6774765c87035bf7ed53f53e31ea"
+        },
+        {
+          "path": "agents/janitor/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 881,
+          "sha256": "a8c6e4c39b468c6bd196f8c81fd1655541e42ed8d62ab48c280aedac3ccf3b43"
+        },
+        {
+          "path": "agents/machine-evolution-lead/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 857,
+          "sha256": "bdbb0893f39ee4d17c5240e3026d8adb1599657caace968605af08e363fd4e9b"
+        },
+        {
+          "path": "agents/platform-operations-lead/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 912,
+          "sha256": "aca115ef6e8b05197e22d8c12c92a126ddaf6756c0de5ea0bc9c5d3375f1dba6"
+        },
+        {
+          "path": "agents/product-engineering-lead/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 815,
+          "sha256": "95f9675a162ddb7ba16bb9e79d4495e449560505f2f0eb12224927032a2a7e76"
+        },
+        {
+          "path": "agents/research-intelligence-lead/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 839,
+          "sha256": "3138a233d886f4a1371bf1d63e5658b7cc4c5f9717893fdc6bb8da89a0ae1130"
+        },
+        {
+          "path": "agents/watchdog/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 871,
+          "sha256": "d79baba0688f13f2ae44d01c030732ed84b68f3d1f3e58364f5d67f2bc7f8172"
+        },
+        {
+          "path": "agents/web-design-studio-lead/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 840,
+          "sha256": "aa3d696268f5355dc763208bc6e0d096453883a63e7d96792012a725f114098c"
+        },
+        {
+          "path": "README.md",
+          "kind": "readme",
+          "sizeBytes": 1343,
+          "sha256": "709b9deb1202fd4791b07aa1b7e6cd2e9cd19e512d56b16e18b13c5375507d80"
+        },
+        {
+          "path": "references/blueprint-v1.md",
+          "kind": "reference",
+          "sizeBytes": 2446,
+          "sha256": "bd5e02ad2077074d5326ea57335838b454e05680ec0162b2c842434ae403ff81"
+        },
+        {
+          "path": "references/knowledge-and-extension-governance.md",
+          "kind": "reference",
+          "sizeBytes": 2066,
+          "sha256": "51f6a5b066d1edce27fa6ce75173d80670b9dcff013555c35acba64c1c365e73"
+        },
+        {
+          "path": "references/operating-model.md",
+          "kind": "reference",
+          "sizeBytes": 3330,
+          "sha256": "eaad94b0bafe65e5370e682a916c390a3d98e98cf3368da54e6a5c7387f28485"
+        },
+        {
+          "path": "references/reconciliation.md",
+          "kind": "reference",
+          "sizeBytes": 2230,
+          "sha256": "fe39b25c37643ec89cf6318ca367bb92506949c7b30db0788aaa33e6e8ed6b3a"
+        }
+      ],
+      "trustLevel": "assets",
+      "compatibility": "compatible",
+      "contentHash": "sha256:c0f0be3b9ad83143a760d53b2fc21f1120fb1937be65d5254e46a83d7ecc8bff"
     },
     {
       "id": "paperclipai:optional:content:content-machine",

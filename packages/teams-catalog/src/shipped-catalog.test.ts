@@ -13,6 +13,7 @@ const EXPECTED_BUNDLED_KEYS = [
 ];
 
 const EXPECTED_OPTIONAL_KEYS = [
+  "paperclipai/optional/company-operations/palmetto-organization-blueprint",
   "paperclipai/optional/content/content-machine",
   "paperclipai/optional/incident-response/palmetto-incident-first",
 ];
@@ -141,6 +142,75 @@ describe("shipped teams catalog", () => {
     expect(team?.files).toEqual(expect.arrayContaining([
       expect.objectContaining({ path: "references/incident-canary-watch.md", kind: "reference" }),
     ]));
+  });
+
+  it("ships the Palmetto organization blueprint as a versioned inert package", () => {
+    const team = catalogTeams.find(
+      (entry) => entry.key === "paperclipai/optional/company-operations/palmetto-organization-blueprint",
+    );
+    expect(team).toBeDefined();
+    expect(team?.defaultInstall).toBe(false);
+    expect(team?.agentSlugs).toEqual([
+      "alfred",
+      "business-operations-lead",
+      "incident-command-lead",
+      "janitor",
+      "machine-evolution-lead",
+      "platform-operations-lead",
+      "product-engineering-lead",
+      "research-intelligence-lead",
+      "watchdog",
+      "web-design-studio-lead",
+    ]);
+    expect(team?.rootAgentSlugs).toEqual(["alfred"]);
+    expect(team?.counts).toEqual({
+      agents: 10,
+      projects: 0,
+      tasks: 0,
+      routines: 0,
+      localSkills: 0,
+      catalogSkills: 0,
+      externalSkillSources: 0,
+    });
+    expect(team?.sourceRefs).toEqual([]);
+
+    const teamPath = path.join(PACKAGE_DIR, team!.path, "TEAM.md");
+    const teamDoc = parseFrontmatterMarkdown(fs.readFileSync(teamPath, "utf8"));
+    expect(asString(teamDoc.frontmatter.blueprintVersion)).toBe("1.0.0");
+
+    const extensionPath = path.join(PACKAGE_DIR, team!.path, ".paperclip.yaml");
+    const extension = fs.readFileSync(extensionPath, "utf8");
+    const sidecar = parseFrontmatterMarkdown(`---\n${extension}\n---\n`).frontmatter;
+    const sidecarAgents = isPlainRecord(sidecar.agents) ? sidecar.agents : {};
+    expect(Object.keys(sidecarAgents).sort()).toEqual(team!.agentSlugs);
+    let budgetEnvelopeCents = 0;
+    for (const slug of team!.agentSlugs) {
+      const agent = isPlainRecord(sidecarAgents[slug]) ? sidecarAgents[slug] : {};
+      const runtime = isPlainRecord(agent.runtime) ? agent.runtime : {};
+      const heartbeat = isPlainRecord(runtime.heartbeat) ? runtime.heartbeat : {};
+      const permissions = isPlainRecord(agent.permissions) ? agent.permissions : {};
+      expect(heartbeat).toEqual({
+        enabled: false,
+        wakeOnDemand: false,
+        wakeOnAssignment: false,
+        wakeOnAutomation: false,
+        maxConcurrentRuns: 1,
+      });
+      expect(permissions).toEqual({ canCreateAgents: false, canCreateSkills: false });
+      expect(typeof agent.budgetMonthlyCents).toBe("number");
+      budgetEnvelopeCents += typeof agent.budgetMonthlyCents === "number" ? agent.budgetMonthlyCents : 0;
+    }
+    expect(budgetEnvelopeCents).toBe(19_000);
+
+    expect(extension).not.toContain("routines:");
+    expect(extension).not.toContain("tasks:");
+    expect(extension).not.toContain("projects:");
+    expect(extension).not.toContain("adapter:");
+    expect(extension).not.toContain("provider:");
+    expect(extension).not.toContain("inputs:");
+    expect(extension).not.toContain("permissionGrants:");
+    expect(extension).not.toContain("toolAllowlist");
+    expect(team?.files.some((file) => file.kind === "task" || file.kind === "project" || file.kind === "skill" || file.kind === "script")).toBe(false);
   });
 });
 

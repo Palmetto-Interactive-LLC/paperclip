@@ -80,6 +80,7 @@ describeEmbeddedPostgres("teams catalog install with no caller adapter overrides
         permissions: agents.permissions,
         runtimeConfig: agents.runtimeConfig,
         status: agents.status,
+        reportsTo: agents.reportsTo,
       })
       .from(agents)
       .where(eq(agents.companyId, companyId));
@@ -175,6 +176,109 @@ describeEmbeddedPostgres("teams catalog install with no caller adapter overrides
       .where(eq(agentWakeupRequests.agentId, importedAgent.id));
     expect(request).toMatchObject({ status: "skipped", reason: "heartbeat.wakeOnDemand.disabled" });
     expect(await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.agentId, importedAgent.id))).toEqual([]);
+  });
+
+  it("reconciles the inert Palmetto organization by stable slug without duplicates", async () => {
+    const companyId = await seedEmptyCompany();
+    const [existingAlfred] = await db
+      .insert(agents)
+      .values({
+        companyId,
+        name: "Alfred",
+        role: "ceo",
+        adapterType: "claude_local",
+        runtimeConfig: {
+          heartbeat: {
+            enabled: false,
+            wakeOnDemand: false,
+            wakeOnAssignment: false,
+            wakeOnAutomation: false,
+            maxConcurrentRuns: 1,
+          },
+        },
+        permissions: { canCreateAgents: false, canCreateSkills: false },
+        budgetMonthlyCents: 4000,
+      })
+      .returning({ id: agents.id });
+    const svc = teamsCatalogService(db);
+
+    const first = await svc.installCatalogTeam(companyId, "palmetto-organization-blueprint", {
+      collisionStrategy: "skip",
+    });
+    expect(first.portabilityImport.agents).toEqual(expect.arrayContaining([
+      expect.objectContaining({ slug: "alfred", id: existingAlfred!.id, action: "skipped" }),
+    ]));
+
+    const byName = await listAdapterTypesByName(companyId);
+    expect(Array.from(byName.keys()).sort()).toEqual([
+      "Alfred",
+      "Business Operations Lead",
+      "Incident Command Lead",
+      "Janitor",
+      "Machine Evolution Lead",
+      "Platform Operations Lead",
+      "Product Engineering Lead",
+      "Research Intelligence Lead",
+      "Watchdog",
+      "Web Design Studio Lead",
+    ]);
+    expect(byName.get("Alfred")?.id).toBe(existingAlfred!.id);
+
+    for (const row of byName.values()) {
+      expect(row.status).toBe("idle");
+      expect(row.runtimeConfig).toMatchObject({
+        heartbeat: {
+          enabled: false,
+          wakeOnDemand: false,
+          wakeOnAssignment: false,
+          wakeOnAutomation: false,
+          maxConcurrentRuns: 1,
+        },
+      });
+      expect(row.permissions).toEqual(expect.objectContaining({
+        canCreateAgents: false,
+        canCreateSkills: false,
+      }));
+    }
+
+    const alfredId = byName.get("Alfred")!.id;
+    for (const leadName of [
+      "Business Operations Lead",
+      "Incident Command Lead",
+      "Machine Evolution Lead",
+      "Platform Operations Lead",
+      "Product Engineering Lead",
+      "Research Intelligence Lead",
+      "Web Design Studio Lead",
+    ]) {
+      expect(byName.get(leadName)?.reportsTo).toBe(alfredId);
+    }
+    const platformLeadId = byName.get("Platform Operations Lead")!.id;
+    expect(byName.get("Janitor")?.reportsTo).toBe(platformLeadId);
+    expect(byName.get("Watchdog")?.reportsTo).toBe(platformLeadId);
+
+    const second = await svc.installCatalogTeam(companyId, "palmetto-organization-blueprint", {
+      collisionStrategy: "skip",
+    });
+    expect(second.portabilityImport.agents).toHaveLength(10);
+    expect(second.portabilityImport.agents.every((agent) => agent.action === "skipped")).toBe(true);
+    expect((await listAdapterTypesByName(companyId)).size).toBe(10);
+    expect(await db.select().from(routines).where(eq(routines.companyId, companyId))).toEqual([]);
+
+    const janitor = byName.get("Janitor")!;
+    const wakeup = await heartbeatService(db).wakeup(janitor.id, {
+      source: "on_demand",
+      triggerDetail: "manual",
+      requestedByActorType: "user",
+      requestedByActorId: "test-board-user",
+    });
+    expect(wakeup).toBeNull();
+    const [request] = await db
+      .select()
+      .from(agentWakeupRequests)
+      .where(eq(agentWakeupRequests.agentId, janitor.id));
+    expect(request).toMatchObject({ status: "skipped", reason: "heartbeat.wakeOnDemand.disabled" });
+    expect(await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.agentId, janitor.id))).toEqual([]);
   });
 
   it("honors an explicit caller adapter override for a single slug while defaulting the rest to claude_local", async () => {
