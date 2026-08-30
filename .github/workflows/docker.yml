@@ -15,8 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  packages: write
+  {}
 
 # Serialise builds per ref without killing an in-flight one: a newer push
 # supersedes only the pending slot, so the image build that is already
@@ -29,6 +28,9 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -171,6 +173,7 @@ jobs:
             io.github.paperclipai.schema.migration-count=${{ steps.schema.outputs.count }}
 
       - name: Build and push
+        id: image
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -193,6 +196,16 @@ jobs:
           cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          sbom: true
+          provenance: mode=max
+
+      - name: Record immutable image digest
+        env:
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          test -n "$IMAGE_DIGEST"
+          echo "Published production image digest: $IMAGE_DIGEST" >> "$GITHUB_STEP_SUMMARY"
 
       # PID 1 must be an init that reaps adopted orphans. With node there, the
       # orphans agent runs leave behind are never wait()ed and pin as zombies
@@ -223,6 +236,9 @@ jobs:
   build-and-push-cloud:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -367,18 +383,15 @@ jobs:
             io.github.paperclipai.schema.migration-count=${{ steps.schema.outputs.count }}
 
       - name: Build and push (cloud)
+        id: image-cloud
         uses: docker/build-push-action@v7
         with:
           context: .
           target: cloud
           # Space-separated sandbox-provider directory names to build into
           # the variant; add here when managed deployments need another.
-          # CLOUD_BUNDLED_SERVER_DEPS names the optional peer packages the
-          # variant installs from server/package.json's declared version;
-          # add another name there when a managed tenant needs it.
           build-args: |
             CLOUD_BUNDLED_PLUGINS=daytona
-            CLOUD_BUNDLED_SERVER_DEPS=@sentry/node
             PAPERCLIP_BUILD_VERSION=${{ steps.build-version.outputs.version }}
             PAPERCLIP_BUILD_COMMIT=${{ github.sha }}
             CLI_TOOLS_CACHE_EPOCH=${{ steps.tools-epoch.outputs.epoch }}
@@ -395,6 +408,16 @@ jobs:
           cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-cloud,mode=max
           tags: ${{ steps.meta-cloud.outputs.tags }}
           labels: ${{ steps.meta-cloud.outputs.labels }}
+          sbom: true
+          provenance: mode=max
+
+      - name: Record immutable cloud image digest
+        env:
+          IMAGE_DIGEST: ${{ steps.image-cloud.outputs.digest }}
+        run: |
+          set -euo pipefail
+          test -n "$IMAGE_DIGEST"
+          echo "Published cloud image digest: $IMAGE_DIGEST" >> "$GITHUB_STEP_SUMMARY"
 
       # The cloud target installs @sentry/node at the version
       # server/package.json declares, into a directory the server's own
