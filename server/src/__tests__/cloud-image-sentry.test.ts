@@ -18,18 +18,23 @@ import { describe, expect, it } from "vitest";
  * (Dockerfile `production` and `cloud` targets).
  *
  * Both image targets get server error reports with no separate install step.
- * The dependency stage reads the version from the `peerDependencies` block
- * of `server/package.json` at build time, so the version has one committed
- * home. This test pins that relationship and ensures the browser's separate
- * exact pin remains in `ui/package.json`.
+ * The dependency stage installs from a dedicated, committed lockfile. This
+ * test pins that relationship and ensures the browser's separate exact pin
+ * remains in `ui/package.json`.
  */
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const dockerfile = readFileSync(path.join(repoRoot, "Dockerfile"), "utf8");
-const workflow = readFileSync(path.join(repoRoot, ".github", "workflows", "docker.yml"), "utf8");
 const serverPackageJson = JSON.parse(
   readFileSync(path.join(repoRoot, "server", "package.json"), "utf8"),
 ) as { peerDependencies?: Record<string, string> };
+const imageDepsPackageJson = JSON.parse(
+  readFileSync(path.join(repoRoot, "docker", "server-deps", "package.json"), "utf8"),
+) as { dependencies?: Record<string, string> };
+const imageDepsLockfile = readFileSync(
+  path.join(repoRoot, "docker", "server-deps", "pnpm-lock.yaml"),
+  "utf8",
+);
 const uiPackageJson = JSON.parse(
   readFileSync(path.join(repoRoot, "ui", "package.json"), "utf8"),
 ) as { devDependencies?: Record<string, string> };
@@ -91,7 +96,7 @@ describe("cloud image Sentry install", () => {
     expect(declaredVersion).toBe("10.71.0");
   });
 
-  it("installs @sentry/node before production and copies it into the image", () => {
+  it("installs @sentry/node from the committed lockfile before production", () => {
     const stageHeaderPattern = /^FROM\s+\S+\s+AS\s+(\S+)/gim;
     const stages = [...dockerfile.matchAll(stageHeaderPattern)].map((match) => ({
       name: match[1],
@@ -106,7 +111,7 @@ describe("cloud image Sentry install", () => {
     expect(serverDepsStage, "the Dockerfile must declare a server-deps stage").toBeTruthy();
     expect(serverDepsStage!.index).toBeLessThan(productionStage.index);
     expect(dockerfile).toMatch(
-      /FROM\s+build\s+AS\s+server-deps[\s\S]*?@sentry\/node@\$\{version\}[\s\S]*?FROM\s+base\s+AS\s+production/,
+      /FROM\s+build\s+AS\s+server-deps[\s\S]*?COPY docker\/server-deps\/package\.json docker\/server-deps\/pnpm-lock\.yaml \.\/[\s\S]*?pnpm install --frozen-lockfile --ignore-scripts --ignore-workspace --prod[\s\S]*?FROM\s+base\s+AS\s+production/,
     );
     expect(dockerfile).toMatch(
       /--from=server-deps\s+\/app\/\.server-deps\/node_modules\s+\/app\/server\/node_modules/,
@@ -119,31 +124,17 @@ describe("cloud image Sentry install", () => {
     );
   });
 
-  it("reads the installed version from server/package.json instead of a second hardcoded copy", () => {
-    // Matches a literal pin such as "@sentry/node@10.71.0", not a shell
-    // variable interpolation such as "@sentry/node@${version}".
-    const versionPinPattern = /@sentry\/node@(\d[^\s"'`]*)/g;
-
-    for (const source of [
-      { label: "Dockerfile", text: dockerfile },
-      { label: "docker workflow", text: workflow },
-    ]) {
-      for (const match of source.text.matchAll(versionPinPattern)) {
-        expect(
-          match[1],
-          `${source.label} pins @sentry/node@${match[1]}, which must equal the declared ` +
-            `optional peer version ${declaredVersion}`,
-        ).toBe(declaredVersion);
-      }
-    }
+  it("pins the image dependency to the same exact SDK version with integrity metadata", () => {
+    expect(imageDepsPackageJson.dependencies?.["@sentry/node"]).toBe("10.71.0");
+    expect(declaredVersion).toBe(imageDepsPackageJson.dependencies?.["@sentry/node"]);
+    expect(imageDepsLockfile).toContain("'@sentry/node@10.71.0'");
+    expect(imageDepsLockfile).toContain("integrity:");
+    expect(imageDepsLockfile).toContain("specifier: 10.71.0");
+    expect(dockerfile).not.toContain("pnpm add");
   });
 
-  it("declares no committed manifest that re-states the version", () => {
-    expect(
-      existsSync(path.join(repoRoot, "docker", "cloud-server-deps")),
-      "docker/cloud-server-deps must not exist; the version has one home, " +
-        "server/package.json's peerDependencies block",
-    ).toBe(false);
+  it("keeps the old cloud-only dependency directory absent", () => {
+    expect(existsSync(path.join(repoRoot, "docker", "cloud-server-deps"))).toBe(false);
   });
 });
 

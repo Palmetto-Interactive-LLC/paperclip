@@ -73,16 +73,13 @@ RUN test -f server/dist/index.js || (echo "ERROR: server build output missing" &
 RUN rm -rf packages/paperclip-runner/runner/target
 
 # The server image ships the optional Sentry peer so an operator only needs to
-# set SENTRY_DSN to enable error monitoring. Install it in an isolated
-# workspace so the application manifests and lockfile remain unchanged; the
-# exact version is read from server/package.json, which is the single source
-# used by the runtime version gate.
+# set SENTRY_DSN to enable error monitoring. Install it from the committed,
+# integrity-checked dependency lockfile so image builds do not resolve a new
+# transitive graph from the live registry.
 FROM build AS server-deps
 WORKDIR /app/.server-deps
-RUN set -eu; \
-  echo '{"name":"paperclip-server-deps","private":true}' > package.json; \
-  version="$(node -e "const pkg=require('/app/server/package.json'); const version=(pkg.peerDependencies||{})['@sentry/node']; const meta=(pkg.peerDependenciesMeta||{})['@sentry/node']; if(!version || !meta || meta.optional!==true){console.error('ERROR: @sentry/node must be declared as an optional peer dependency in server/package.json'); process.exit(1);} process.stdout.write(version);")"; \
-  pnpm add --ignore-workspace --no-lockfile "@sentry/node@${version}"
+COPY docker/server-deps/package.json docker/server-deps/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --ignore-scripts --ignore-workspace --prod
 
 FROM base AS production
 ARG USER_UID=1000
