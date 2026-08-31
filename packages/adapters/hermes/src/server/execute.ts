@@ -484,8 +484,13 @@ export async function execute(
 
   // ── Build environment ──────────────────────────────────────────────────
   const userEnv = config.env as Record<string, string> | undefined;
+  const eccMemoryVaultEnabled = cfgBoolean(config.eccMemoryVault) === true;
   const env: Record<string, string> = {
     ...(process.env as Record<string, string>),
+    // Every ECC memory vault process needs its own harness identity. This is
+    // a default, not a forced value — a user-supplied ECC_MEMORY_HARNESS in
+    // config.env below still wins.
+    ...(eccMemoryVaultEnabled ? { ECC_MEMORY_HARNESS: "hermes" } : {}),
     ...(userEnv && typeof userEnv === "object" ? userEnv : {}),
     ...buildPaperclipEnv(ctx.agent),
     ...buildRuntimeToolsEnv(ctx.runtimeTools),

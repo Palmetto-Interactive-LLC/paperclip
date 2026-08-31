@@ -98,6 +98,13 @@ export function getConfigSchema(): AdapterConfigSchema {
         hint: "Optional API base override. Defaults to PAPERCLIP_API_URL.",
       },
       {
+        key: "eccMemoryVault",
+        label: "ECC memory vault",
+        type: "toggle",
+        default: false,
+        hint: "Sets ECC_MEMORY_HARNESS=hermes so this agent can read/write cross-agent handoffs via the ecc-memory-vault skill. Requires ecc-universal installed separately and the ecc-memory-vault skill enabled.",
+      },
+      {
         key: "promptTemplate",
         label: "Prompt template",
         type: "textarea",
