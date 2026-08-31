@@ -1,0 +1,33 @@
+{
+  "source": {
+    "type": "github",
+    "hostname": "github.com",
+    "owner": "Palmetto-Interactive-LLC",
+    "repo": "ECC",
+    "ref": "main",
+    "commit": "005eff40fd4a4ac005da7a70e713459175385516",
+    "path": "skills/agent-self-evaluation"
+  },
+  "files": [
+    "SKILL.md",
+    "examples/high-score-example.md",
+    "examples/low-score-example.md",
+    "references/evaluation-criteria.md",
+    "references/hook-integration.md",
+    "scripts/evaluate.py",
+    "templates/evaluation-report.md"
+  ],
+  "defaultInstall": false,
+  "recommendedForRoles": [
+    "engineer",
+    "general"
+  ],
+  "requires": [],
+  "tags": [
+    "ecc",
+    "ecc-skill",
+    "agent",
+    "self",
+    "evaluation"
+  ]
+}
