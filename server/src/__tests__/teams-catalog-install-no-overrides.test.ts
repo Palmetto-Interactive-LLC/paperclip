@@ -4,11 +4,20 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { agents, companies, createDb } from "@paperclipai/db";
+import {
+  agentWakeupRequests,
+  agents,
+  companies,
+  companyMemberships,
+  createDb,
+  heartbeatRuns,
+  routines,
+} from "@paperclipai/db";
 import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
 } from "./helpers/embedded-postgres.js";
+import { heartbeatService } from "../services/heartbeat.js";
 import { teamsCatalogService } from "../services/teams-catalog.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
@@ -43,11 +52,20 @@ describeEmbeddedPostgres("teams catalog install with no caller adapter overrides
 
   async function seedEmptyCompany() {
     const companyId = randomUUID();
+    const ownerUserId = `owner-${randomUUID()}`;
     await db.insert(companies).values({
       id: companyId,
       name: "Clean install company",
       issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
       requireBoardApprovalForNewAgents: false,
+      defaultResponsibleUserId: ownerUserId,
+    });
+    await db.insert(companyMemberships).values({
+      companyId,
+      principalType: "user",
+      principalId: ownerUserId,
+      membershipRole: "owner",
+      status: "active",
     });
     return companyId;
   }
@@ -55,10 +73,13 @@ describeEmbeddedPostgres("teams catalog install with no caller adapter overrides
   async function listAdapterTypesByName(companyId: string) {
     const rows = await db
       .select({
+        id: agents.id,
         name: agents.name,
         role: agents.role,
         adapterType: agents.adapterType,
         permissions: agents.permissions,
+        runtimeConfig: agents.runtimeConfig,
+        status: agents.status,
       })
       .from(agents)
       .where(eq(agents.companyId, companyId));
@@ -114,6 +135,46 @@ describeEmbeddedPostgres("teams catalog install with no caller adapter overrides
     expect(adapterTypes).toEqual(["claude_local", "claude_local", "claude_local"]);
     expect(adapterTypes).not.toContain("process");
     expect(byName.get("CTO")?.permissions).toMatchObject({ canCreateAgents: true });
+  });
+
+  it("installs the Palmetto incident reference without starting agents or automation", async () => {
+    const companyId = await seedEmptyCompany();
+    const svc = teamsCatalogService(db);
+
+    await svc.installCatalogTeam(companyId, "palmetto-incident-first", {
+      collisionStrategy: "rename",
+    });
+
+    const byName = await listAdapterTypesByName(companyId);
+    expect(byName.size).toBe(3);
+    for (const row of byName.values()) {
+      expect(row.status).toBe("idle");
+      expect(row.runtimeConfig).toMatchObject({
+        heartbeat: { enabled: false, wakeOnDemand: false, maxConcurrentRuns: 1 },
+      });
+      expect(row.permissions).toEqual(expect.objectContaining({
+        canCreateAgents: false,
+        canCreateSkills: false,
+      }));
+      expect(row.permissions).not.toHaveProperty("toolAllowlist");
+    }
+
+    expect(await db.select().from(routines).where(eq(routines.companyId, companyId))).toEqual([]);
+
+    const importedAgent = Array.from(byName.values())[0]!;
+    const wakeup = await heartbeatService(db).wakeup(importedAgent.id, {
+      source: "on_demand",
+      triggerDetail: "manual",
+      requestedByActorType: "user",
+      requestedByActorId: "test-board-user",
+    });
+    expect(wakeup).toBeNull();
+    const [request] = await db
+      .select()
+      .from(agentWakeupRequests)
+      .where(eq(agentWakeupRequests.agentId, importedAgent.id));
+    expect(request).toMatchObject({ status: "skipped", reason: "heartbeat.wakeOnDemand.disabled" });
+    expect(await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.agentId, importedAgent.id))).toEqual([]);
   });
 
   it("honors an explicit caller adapter override for a single slug while defaulting the rest to claude_local", async () => {
