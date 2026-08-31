@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { catalogManifest, catalogTeams, resolveCatalogTeamRef } from "./index.js";
-import { asBoolean, asString, parseFrontmatterMarkdown } from "./frontmatter.js";
+import { asBoolean, asString, isPlainRecord, parseFrontmatterMarkdown } from "./frontmatter.js";
 import type { CatalogTeam } from "./types.js";
 
 const EXPECTED_BUNDLED_KEYS = [
@@ -14,6 +14,7 @@ const EXPECTED_BUNDLED_KEYS = [
 
 const EXPECTED_OPTIONAL_KEYS = [
   "paperclipai/optional/content/content-machine",
+  "paperclipai/optional/incident-response/palmetto-incident-first",
 ];
 
 const PACKAGE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -110,6 +111,36 @@ describe("shipped teams catalog", () => {
     }
 
     expect(issues).toEqual([]);
+  });
+
+  it("ships the Palmetto canary as three inert roles with disabled automation", () => {
+    const team = catalogTeams.find(
+      (entry) => entry.key === "paperclipai/optional/incident-response/palmetto-incident-first",
+    );
+    expect(team).toBeDefined();
+    expect(team?.agentSlugs).toEqual(["incident-coordinator", "independent-verifier", "resolver"]);
+    expect(team?.counts).toMatchObject({ agents: 3, projects: 1, tasks: 0, routines: 0, localSkills: 1 });
+
+    const extensionPath = path.join(PACKAGE_DIR, team!.path, ".paperclip.yaml");
+    const extension = fs.readFileSync(extensionPath, "utf8");
+    const sidecar = parseFrontmatterMarkdown(`---\n${extension}\n---\n`).frontmatter;
+    const sidecarAgents = isPlainRecord(sidecar.agents) ? sidecar.agents : {};
+    for (const slug of team!.agentSlugs) {
+      const agent = isPlainRecord(sidecarAgents[slug]) ? sidecarAgents[slug] : {};
+      const runtime = isPlainRecord(agent.runtime) ? agent.runtime : {};
+      const heartbeat = isPlainRecord(runtime.heartbeat) ? runtime.heartbeat : {};
+      const permissions = isPlainRecord(agent.permissions) ? agent.permissions : {};
+      expect(heartbeat).toMatchObject({ enabled: false, wakeOnDemand: false, maxConcurrentRuns: 1 });
+      expect(permissions).toEqual({ canCreateAgents: false, canCreateSkills: false });
+    }
+
+    expect(extension).not.toContain("routines:");
+    expect(extension).not.toContain("toolAllowlist");
+    expect(extension).not.toContain("approvalGates");
+    expect(extension).not.toContain("maxAuthority");
+    expect(team?.files).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: "references/incident-canary-watch.md", kind: "reference" }),
+    ]));
   });
 });
 
