@@ -112,6 +112,7 @@ tools, persistent memory, session persistence, skills, and MCP support.
 | extraArgs | string[] | [] | Additional CLI arguments |
 | env | object | {} | Extra environment variables |
 | promptTemplate | string | (default) | Custom prompt template with {{variable}} placeholders |
+| eccMemoryVault | boolean | false | Sets ECC_MEMORY_HARNESS=hermes (overridable via env) for cross-agent handoffs via the ecc-memory-vault skill |
 
 ## Hermes-Originated Paperclip Tasks
 
@@ -135,6 +136,20 @@ The bridge is separate from adapter execution:
 Create task bridge keys with a parent issue or project boundary. Do not expose
 normal claimed Paperclip agent API keys to internet-facing Hermes chat/webhook
 task-bridge surfaces.
+
+## ECC Memory Vault
+
+This adapter package also ships an \`ecc-memory-vault\` skill for cross-agent
+handoffs (Hermes, Claude Code, Codex) through
+[ECC](https://github.com/affaan-m/ECC)'s Memory Vault. Enable the
+\`eccMemoryVault\` config toggle above so Hermes gets its own
+\`ECC_MEMORY_HARNESS=hermes\` identity, and enable the \`ecc-memory-vault\`
+skill so Hermes knows the \`ecc memory\` command protocol. Requires
+\`ecc-universal\` installed separately (\`npm install -g ecc-universal\`).
+
+This is a scratch handoff layer, not Paperclip's system of record — durable
+decisions still belong in a Paperclip issue comment via
+\`paperclip-task-bridge\`.
 
 ## Available Template Variables
 
