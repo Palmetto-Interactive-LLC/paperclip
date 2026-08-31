@@ -99,6 +99,9 @@ export async function buildExpectedCatalogManifest(
 export async function buildCatalogManifest(
   options: BuildCatalogManifestOptions,
 ): Promise<BuildCatalogManifestResult> {
+  // Each build run gets its own tree cache: fixture/mocked fetches in tests
+  // must not leak across independent buildCatalogManifest() calls.
+  githubTreeCache.clear();
   const packageDir = path.resolve(options.packageDir);
   const packageJson = await readPackageJson(packageDir);
   const existingManifest = await readExistingManifest(packageDir);
@@ -608,25 +611,55 @@ async function collectReferencedSkillFiles(
   return files;
 }
 
+interface GitHubTreeFetchResult {
+  tree: GitHubTreeEntry[];
+  warning: string | null;
+}
+
+// Multiple referenced skills commonly pin the same commit in the same repo
+// (e.g. an imported skill pack). Cache the recursive tree fetch per
+// hostname/owner/repo/commit within this process so N referenced skills cost
+// one GitHub API call instead of N, keeping bulk imports under the
+// unauthenticated rate limit.
+const githubTreeCache = new Map<string, Promise<GitHubTreeFetchResult>>();
+
+function githubRequestHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
+  if (process.env.GITHUB_TOKEN) headers.authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  return headers;
+}
+
+async function fetchGitHubTreeCached(source: CatalogSkillSource): Promise<GitHubTreeFetchResult> {
+  const cacheKey = `${source.hostname}/${source.owner}/${source.repo}/${source.commit}`;
+  let cached = githubTreeCache.get(cacheKey);
+  if (!cached) {
+    cached = (async (): Promise<GitHubTreeFetchResult> => {
+      const url = `${githubApiBase(source.hostname)}/repos/${source.owner}/${source.repo}/git/trees/${source.commit}?recursive=1`;
+      try {
+        const response = await fetch(url, { headers: githubRequestHeaders({ accept: "application/vnd.github+json" }) });
+        if (!response.ok) {
+          return { tree: [], warning: `failed to fetch GitHub tree: HTTP ${response.status}.` };
+        }
+        const body = await response.json() as { tree?: GitHubTreeEntry[]; truncated?: boolean };
+        const tree = Array.isArray(body.tree) ? body.tree : [];
+        return { tree, warning: body.truncated ? "GitHub tree response was truncated." : null };
+      } catch (error) {
+        return { tree: [], warning: `failed to fetch GitHub tree: ${errorMessage(error)}.` };
+      }
+    })();
+    githubTreeCache.set(cacheKey, cached);
+  }
+  return cached;
+}
+
 async function fetchGitHubTree(
   source: CatalogSkillSource,
   prefix: string,
   errors: string[],
 ): Promise<GitHubTreeEntry[]> {
-  const url = `${githubApiBase(source.hostname)}/repos/${source.owner}/${source.repo}/git/trees/${source.commit}?recursive=1`;
-  try {
-    const response = await fetch(url, { headers: { accept: "application/vnd.github+json" } });
-    if (!response.ok) {
-      errors.push(`${prefix} failed to fetch GitHub tree: HTTP ${response.status}.`);
-      return [];
-    }
-    const body = await response.json() as { tree?: GitHubTreeEntry[]; truncated?: boolean };
-    if (body.truncated) errors.push(`${prefix} GitHub tree response was truncated.`);
-    return Array.isArray(body.tree) ? body.tree : [];
-  } catch (error) {
-    errors.push(`${prefix} failed to fetch GitHub tree: ${errorMessage(error)}.`);
-    return [];
-  }
+  const { tree, warning } = await fetchGitHubTreeCached(source);
+  if (warning) errors.push(`${prefix} ${warning}`);
+  return tree;
 }
 
 async function readReferencedFileText(
@@ -652,7 +685,7 @@ async function fetchReferencedFileBytes(
   }
   const url = rawGitHubUrl(source, normalizedPath);
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { headers: githubRequestHeaders() });
     if (!response.ok) {
       errors.push(`${prefix}/${normalizedPath} failed to fetch pinned GitHub file: HTTP ${response.status}.`);
       return null;

@@ -1,0 +1,27 @@
+{
+  "source": {
+    "type": "github",
+    "hostname": "github.com",
+    "owner": "Palmetto-Interactive-LLC",
+    "repo": "ECC",
+    "ref": "main",
+    "commit": "005eff40fd4a4ac005da7a70e713459175385516",
+    "path": "skills/swift-actor-persistence"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "defaultInstall": false,
+  "recommendedForRoles": [
+    "engineer",
+    "general"
+  ],
+  "requires": [],
+  "tags": [
+    "ecc",
+    "ecc-skill",
+    "swift",
+    "actor",
+    "persistence"
+  ]
+}

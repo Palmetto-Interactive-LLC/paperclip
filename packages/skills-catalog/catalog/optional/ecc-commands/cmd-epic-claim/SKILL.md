@@ -1,0 +1,43 @@
+---
+name: ECC Command: epic-claim
+description: Claim an epic issue, stamp coordination state, and sync local ownership.
+key: paperclipai/optional/ecc-commands/cmd-epic-claim
+slug: cmd-epic-claim
+defaultInstall: false
+recommendedForRoles:
+  - engineer
+  - general
+requires:[]
+tags:
+  - ecc
+  - ecc-command
+  - task-recipe
+  - epic
+  - claim
+---
+> **Provenance:** Adapted from ECC `commands/epic-claim.md` (slash-command recipe). Imported from ECC (ecc-universal) by Affaan Mustafa (https://github.com/affaan-m/ECC), mirrored at https://github.com/Palmetto-Interactive-LLC/ECC, MIT License. Copyright (c) 2026 Affaan Mustafa.
+
+# ECC Command Recipe: epic-claim
+
+# /epic-claim
+
+Claim one epic issue as the source of truth for a unit of work.
+
+Use the coordination script:
+
+```bash
+node scripts/github-coordination.js claim <issue-number> --repo <owner/repo> --actor <login>
+```
+
+What this does:
+
+1. Loads the issue body and coordination block.
+2. Marks the epic as claimed in GitHub issue state.
+3. Updates labels and the local SQLite cache.
+4. Appends an audit comment for the claim.
+
+Compatibility aliases:
+
+- `/orch-add-feature`
+- `/orch-change-feature`
+- `/prp-implement`
