@@ -252,6 +252,7 @@ Available toolsets: `terminal`, `file`, `web`, `browser`, `code_execution`, `vis
 | `env` | object | `{}` | Extra environment variables |
 | `promptTemplate` | string | *(built-in)* | Custom prompt template |
 | `paperclipApiUrl` | string | `http://127.0.0.1:3100/api` | Paperclip API base URL |
+| `eccMemoryVault` | boolean | `false` | Sets `ECC_MEMORY_HARNESS=hermes` (overridable via `env`) so this agent can use the [ECC Memory Vault](https://github.com/affaan-m/ECC) for cross-agent handoffs. Requires `ecc-universal` installed separately and the `ecc-memory-vault` skill enabled. |
 
 ### Prompt Template Variables
 
@@ -320,6 +321,14 @@ The adapter scans two skill sources and merges them:
 
 The `listSkills` / `syncSkills` APIs expose a unified snapshot so the
 Paperclip UI can display both managed and native skills in one view.
+
+This package bundles two Paperclip-managed skills, both togglable from the UI:
+
+- `paperclip-task-bridge` — lets Hermes create/comment/update Paperclip work
+  (the Hermes-to-Paperclip direction).
+- `ecc-memory-vault` — lets Hermes read/write cross-agent handoffs (Hermes,
+  Claude Code, Codex) through [ECC](https://github.com/affaan-m/ECC)'s Memory
+  Vault. Pair it with the `eccMemoryVault` config toggle above.
 
 ## Development
 
