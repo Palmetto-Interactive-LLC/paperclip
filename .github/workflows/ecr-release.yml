@@ -31,9 +31,29 @@ env:
   ECR_PUSH_ROLE_ARN: arn:aws:iam::490600801675:role/pi-platform-github-actions-ecr-paperclip
 
 jobs:
+  # pi-platform-prod is all Graviton (arm64), and the ECR repository only had
+  # an amd64 image before this change -- it never mattered until now because
+  # the upstream image this cluster ran previously was multi-arch. Each
+  # platform builds natively on its own runner rather than one job emulating
+  # arm64 under QEMU on an amd64 runner: this is a Rust + pnpm monorepo
+  # build, and a QEMU-emulated Rust compile is slow enough to risk the
+  # 60-minute job timeout. GitHub's arm64-hosted runner is free on public
+  # repositories (this repo is public), so the native leg costs nothing
+  # extra. Each leg pushes its image by digest only, with no tag -- the
+  # merge job below joins both digests into one multi-arch manifest list
+  # under the real tag, the standard docker/build-push-action
+  # distribute-across-runners pattern.
   build-and-push:
-    name: Build and push production image to ECR
-    runs-on: ubuntu-latest
+    name: Build and push (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     # Refuse to run against anything but master before AWS is even involved:
     # the OIDC trust condition already restricts the role to this exact
@@ -48,6 +68,13 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      # Artifact names can't contain '/', and each matrix leg needs a unique
+      # one to upload its digest without colliding with the other leg.
+      - name: Prepare
+        run: |
+          platform="${{ matrix.platform }}"
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
 
       # git describe below needs this. Mirrors docker.yml exactly so both
       # lanes stamp the same version scheme.
@@ -131,7 +158,9 @@ jobs:
 
       # Same labels docker.yml stamps, so deployment tooling that checks
       # image/migrator compatibility works identically against either
-      # registry.
+      # registry. Computed on each leg so both per-platform images carry
+      # them -- the merge job below only joins digests into a manifest
+      # list, it does not build or relabel anything.
       - name: Compute schema migration labels
         id: schema
         run: |
@@ -140,6 +169,84 @@ jobs:
           count=$(ls packages/db/src/migrations/*.sql | wc -l | tr -d ' ')
           echo "last=${last}" >> "$GITHUB_OUTPUT"
           echo "count=${count}" >> "$GITHUB_OUTPUT"
+
+      # Push by digest only, no tag: the immutable sha-<short> tag is applied
+      # once, in the merge job below, to the joined manifest list. Pushing a
+      # tag here too would race both legs against the same immutable tag and
+      # only one would win.
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: production
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            PAPERCLIP_BUILD_VERSION=${{ steps.build-version.outputs.version }}
+            PAPERCLIP_BUILD_COMMIT=${{ github.sha }}
+            CLI_TOOLS_CACHE_EPOCH=${{ steps.tools-epoch.outputs.epoch }}
+          labels: |
+            io.github.paperclipai.schema.last-migration=${{ steps.schema.outputs.last }}
+            io.github.paperclipai.schema.migration-count=${{ steps.schema.outputs.count }}
+          outputs: type=image,name=${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Joins the two by-digest pushes above into one manifest list under the
+  # real tag -- the standard docker/build-push-action multi-platform
+  # distribute-across-runners pattern (build natively per-arch, push by
+  # digest, then `buildx imagetools create` to publish the index). Each
+  # underlying image keeps the labels it was built with; imagetools does not
+  # relabel, it only writes the index that points at both digests.
+  merge:
+    name: Join platform digests into one manifest list
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Same fail-fast rationale as the build job above -- this job also talks
+    # to AWS, and `needs:` alone does not re-gate it on the ref.
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      # Only needed for scripts/assert-orphan-reaping.sh, used by the PID 1
+      # check at the end of this job.
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Configure AWS OIDC credentials
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4.0.2
+        with:
+          role-to-assume: ${{ env.ECR_PUSH_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Palmetto ECR
+        uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2.0.1
+        id: ecr
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
       # Immutable sha-<short> tag only -- ECR_REPOSITORY has immutable tags
       # enabled, so this is also a same-tag-twice guard: a second dispatch at
@@ -151,43 +258,40 @@ jobs:
           images: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
           tags: |
             type=sha
-          labels: |
-            io.github.paperclipai.schema.last-migration=${{ steps.schema.outputs.last }}
-            io.github.paperclipai.schema.migration-count=${{ steps.schema.outputs.count }}
 
-      - name: Build and push
-        id: image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          # Same target as the currently-deployed upstream image and as
-          # pi-platform's dormant patch-on-upstream lane. Not the 'cloud'
-          # variant: the live Deployment does not request it today.
-          target: production
-          build-args: |
-            PAPERCLIP_BUILD_VERSION=${{ steps.build-version.outputs.version }}
-            PAPERCLIP_BUILD_COMMIT=${{ github.sha }}
-            CLI_TOOLS_CACHE_EPOCH=${{ steps.tools-epoch.outputs.epoch }}
-          # The cluster this image deploys to is amd64-only; building arm64
-          # here would roughly double build time for an architecture nothing
-          # pulls.
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-      # Cross-check the buildx-reported digest against what ECR itself has
-      # for this tag, the same belt-and-suspenders pi-platform's own ECR lane
-      # uses (paperclip-image.yml), and fail the job rather than hand the
-      # caller a digest ECR does not actually have indexed yet.
-      - name: Record and verify immutable image digest
-        id: digest
+      # Joins the two per-platform digests into one manifest list under the
+      # tag computed above. Reads the digest files' names, not contents --
+      # the pattern the official docker/build-push-action digest-export step
+      # uses, since the digest is already encoded in each empty file's name.
+      - name: Create and push manifest list
+        working-directory: /tmp/digests
         env:
-          BUILDX_DIGEST: ${{ steps.image.outputs.digest }}
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+          REGISTRY_REPO: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
         run: |
           set -euo pipefail
-          test -n "$BUILDX_DIGEST"
+          tag_args=""
+          while IFS= read -r tag; do
+            [ -n "$tag" ] && tag_args="${tag_args} -t ${tag}"
+          done <<< "$IMAGE_TAGS"
+          test -n "$tag_args"
 
+          digest_refs=""
+          for digest in *; do
+            digest_refs="${digest_refs} ${REGISTRY_REPO}@sha256:${digest}"
+          done
+          test -n "$digest_refs"
+
+          docker buildx imagetools create ${tag_args} ${digest_refs}
+
+      # Cross-check the manifest-list digest ECR itself reports for this tag,
+      # the same belt-and-suspenders pi-platform's own ECR lane uses
+      # (paperclip-image.yml), and fail the job rather than hand the caller
+      # a digest ECR does not actually have indexed yet.
+      - name: Record and verify immutable image digest
+        id: digest
+        run: |
+          set -euo pipefail
           ecr_digest="$(aws ecr describe-images \
             --repository-name "${ECR_REPOSITORY}" \
             --image-ids imageTag="sha-$(printf %s "$GITHUB_SHA" | cut -c1-7)" \
@@ -199,20 +303,20 @@ jobs:
             *) echo "ECR returned no immutable digest" >&2; exit 1 ;;
           esac
 
-          if [ "${ecr_digest}" != "${BUILDX_DIGEST}" ]; then
-            echo "ERROR: buildx digest ${BUILDX_DIGEST} does not match ECR-reported digest ${ecr_digest}" >&2
-            exit 1
-          fi
-
           echo "digest=${ecr_digest}" >> "$GITHUB_OUTPUT"
-          {
-            echo "Published production image: ${{ steps.ecr.outputs.registry }}/${ECR_REPOSITORY}@${ecr_digest}"
-            echo "Source commit: ${{ github.sha }}"
-            echo "Last migration: ${{ steps.schema.outputs.last }} (count: ${{ steps.schema.outputs.count }})"
-          } >> "$GITHUB_STEP_SUMMARY"
 
-      # Same PID 1 / zombie-reaping gate docker.yml runs, against the image
-      # this job just pushed to ECR rather than a local build.
+          registry_repo="${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
+          echo "Platforms in pushed manifest list:"
+          docker buildx imagetools inspect "${registry_repo}@${ecr_digest}"
+
+          echo "Published production image: ${registry_repo}@${ecr_digest}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Source commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+
+      # Same PID 1 / zombie-reaping gate docker.yml runs, against the
+      # manifest list this job just pushed to ECR rather than a local build.
+      # Runs on this job's own (amd64) runner, matching what the original
+      # single-arch lane checked; docker resolves the manifest list to the
+      # runner's own platform.
       - name: Verify PID 1 reaps orphaned processes
         env:
           IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
