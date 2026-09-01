@@ -1,0 +1,224 @@
+name: ECR release
+
+# Manual production promotion: publishes this fork's own master build into
+# Palmetto's ECR, mirroring the review-gated pattern pi-platform uses for its
+# dormant patch-on-upstream lane (docs/runbooks/paperclip-image.md in
+# pi-platform) rather than auto-publishing on every push to master the way
+# docker.yml auto-publishes to GHCR. No push trigger: an operator dispatches
+# this explicitly after reviewing what's on master.
+on:
+  workflow_dispatch:
+
+permissions:
+  {}
+
+# Serialise pushes to the one immutable-image role: a newer dispatch
+# supersedes only the pending slot, matching docker.yml's concurrency policy.
+concurrency:
+  group: ecr-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: paperclip/web
+  # Palmetto's paperclip publisher role (pi-platform:opentofu/modules/iam-oidc).
+  # Its trust policy accepts this exact repo's master branch in addition to
+  # pi-platform's own main branch; its permissions policy is scoped to only
+  # the paperclip/web ECR repository. This is a stable role ARN, not a
+  # secret -- it is visible to anyone who can read the role in AWS IAM, so it
+  # is inlined here rather than as a repo variable so the trust target is
+  # visible in the reviewable workflow diff, not a separate hidden setting.
+  ECR_PUSH_ROLE_ARN: arn:aws:iam::490600801675:role/pi-platform-github-actions-ecr-paperclip
+
+jobs:
+  build-and-push:
+    name: Build and push production image to ECR
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Refuse to run against anything but master before AWS is even involved:
+    # the OIDC trust condition already restricts the role to this exact
+    # subject, so a mismatched ref would only surface as an opaque
+    # AssumeRoleWithWebIdentity denial. Fail fast with a readable message.
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # git describe below needs this. Mirrors docker.yml exactly so both
+      # lanes stamp the same version scheme.
+      - name: Compute build version
+        id: build-version
+        run: |
+          set -euo pipefail
+          version="$(git describe --tags --match 'v*' --long --dirty 2>/dev/null || true)"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Stamping build version: ${version:-<none>}"
+
+      - name: Compute tool cache epoch
+        id: tools-epoch
+        run: echo "epoch=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9.15.4
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Refresh lockfile for Docker build context
+        run: |
+          set -euo pipefail
+          pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
+
+          changed="$(git status --porcelain)"
+          if [ -z "$changed" ]; then
+            echo "Lockfile already matches package metadata."
+            exit 0
+          fi
+
+          if printf '%s\n' "$changed" | grep -Fvq ' pnpm-lock.yaml'; then
+            echo "Unexpected files changed during lockfile refresh:"
+            echo "$changed"
+            exit 1
+          fi
+
+          echo "Using refreshed pnpm-lock.yaml in the Docker build context."
+
+      - name: Free runner disk
+        run: |
+          set -euo pipefail
+          echo "Disk before cleanup:"
+          df -h
+
+          pnpm store prune || true
+          sudo apt-get clean || true
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/share/swift \
+            /usr/local/lib/android \
+            /usr/local/share/boost \
+            /usr/local/share/powershell \
+            /opt/ghc \
+            /opt/hostedtoolcache/CodeQL \
+            /opt/hostedtoolcache/PyPy \
+            /opt/hostedtoolcache/Ruby || true
+          docker system prune -af || true
+
+          echo "Disk after cleanup:"
+          df -h
+
+      - name: Configure AWS OIDC credentials
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4.0.2
+        with:
+          role-to-assume: ${{ env.ECR_PUSH_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Palmetto ECR
+        uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2.0.1
+        id: ecr
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Same labels docker.yml stamps, so deployment tooling that checks
+      # image/migrator compatibility works identically against either
+      # registry.
+      - name: Compute schema migration labels
+        id: schema
+        run: |
+          set -euo pipefail
+          last=$(ls packages/db/src/migrations/*.sql | sed 's|.*/||' | LC_ALL=C sort | tail -1)
+          count=$(ls packages/db/src/migrations/*.sql | wc -l | tr -d ' ')
+          echo "last=${last}" >> "$GITHUB_OUTPUT"
+          echo "count=${count}" >> "$GITHUB_OUTPUT"
+
+      # Immutable sha-<short> tag only -- ECR_REPOSITORY has immutable tags
+      # enabled, so this is also a same-tag-twice guard: a second dispatch at
+      # the same commit fails the push instead of silently overwriting.
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
+          tags: |
+            type=sha
+          labels: |
+            io.github.paperclipai.schema.last-migration=${{ steps.schema.outputs.last }}
+            io.github.paperclipai.schema.migration-count=${{ steps.schema.outputs.count }}
+
+      - name: Build and push
+        id: image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          # Same target as the currently-deployed upstream image and as
+          # pi-platform's dormant patch-on-upstream lane. Not the 'cloud'
+          # variant: the live Deployment does not request it today.
+          target: production
+          build-args: |
+            PAPERCLIP_BUILD_VERSION=${{ steps.build-version.outputs.version }}
+            PAPERCLIP_BUILD_COMMIT=${{ github.sha }}
+            CLI_TOOLS_CACHE_EPOCH=${{ steps.tools-epoch.outputs.epoch }}
+          # The cluster this image deploys to is amd64-only; building arm64
+          # here would roughly double build time for an architecture nothing
+          # pulls.
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # Cross-check the buildx-reported digest against what ECR itself has
+      # for this tag, the same belt-and-suspenders pi-platform's own ECR lane
+      # uses (paperclip-image.yml), and fail the job rather than hand the
+      # caller a digest ECR does not actually have indexed yet.
+      - name: Record and verify immutable image digest
+        id: digest
+        env:
+          BUILDX_DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          test -n "$BUILDX_DIGEST"
+
+          ecr_digest="$(aws ecr describe-images \
+            --repository-name "${ECR_REPOSITORY}" \
+            --image-ids imageTag="sha-$(printf %s "$GITHUB_SHA" | cut -c1-7)" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)"
+
+          case "${ecr_digest}" in
+            sha256:*) ;;
+            *) echo "ECR returned no immutable digest" >&2; exit 1 ;;
+          esac
+
+          if [ "${ecr_digest}" != "${BUILDX_DIGEST}" ]; then
+            echo "ERROR: buildx digest ${BUILDX_DIGEST} does not match ECR-reported digest ${ecr_digest}" >&2
+            exit 1
+          fi
+
+          echo "digest=${ecr_digest}" >> "$GITHUB_OUTPUT"
+          {
+            echo "Published production image: ${{ steps.ecr.outputs.registry }}/${ECR_REPOSITORY}@${ecr_digest}"
+            echo "Source commit: ${{ github.sha }}"
+            echo "Last migration: ${{ steps.schema.outputs.last }} (count: ${{ steps.schema.outputs.count }})"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Same PID 1 / zombie-reaping gate docker.yml runs, against the image
+      # this job just pushed to ECR rather than a local build.
+      - name: Verify PID 1 reaps orphaned processes
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          image="$(printf '%s\n' "$IMAGE_TAGS" | head -n 1)"
+          test -n "$image"
+          echo "Verifying orphan reaping in $image"
+          docker run --rm -i --pull always "$image" sh -s < scripts/assert-orphan-reaping.sh
