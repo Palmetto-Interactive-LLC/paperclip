@@ -26,8 +26,8 @@ env:
   # pi-platform's own main branch; its permissions policy is scoped to only
   # the paperclip/web ECR repository. This is a stable role ARN, not a
   # secret -- it is visible to anyone who can read the role in AWS IAM, so it
-  # is inlined here rather than as a repo variable (this fork's deploy
-  # identity has read-only Actions-variables access on this repo).
+  # is inlined here rather than as a repo variable so the trust target is
+  # visible in the reviewable workflow diff, not a separate hidden setting.
   ECR_PUSH_ROLE_ARN: arn:aws:iam::490600801675:role/pi-platform-github-actions-ecr-paperclip
 
 jobs:
@@ -190,7 +190,7 @@ jobs:
 
           ecr_digest="$(aws ecr describe-images \
             --repository-name "${ECR_REPOSITORY}" \
-            --image-ids imageTag="sha-$(git rev-parse --short=7 HEAD)" \
+            --image-ids imageTag="sha-$(printf %s "$GITHUB_SHA" | cut -c1-7)" \
             --query 'imageDetails[0].imageDigest' \
             --output text)"
 
